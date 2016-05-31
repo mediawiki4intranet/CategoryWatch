@@ -58,12 +58,12 @@ class CategoryWatch
 	{
 		global $wgCategoryWatchUseAutoCat, $wgCategoryWatchUseAutoCatRealName;
 
-		# If using the automatically watched category feature, ensure that all users are watching it
+		// If using the automatically watched category feature, ensure that all users are watching it
 		if ($wgCategoryWatchUseAutoCat)
 		{
 			$dbr = wfGetDB(DB_SLAVE);
 
-			# Check if the user is not watching the autocat
+			// Check if the user is not watching the autocat
 			$userid = $user->getId();
 			$like = str_replace(' ', '_', trim(wfMsg('categorywatch-autocat', '')));
 			$utbl = $dbr->tableName('user');
@@ -71,7 +71,7 @@ class CategoryWatch
 			$sql = "SELECT user_id FROM $utbl LEFT JOIN $wtbl ON user_id=wl_user AND wl_title LIKE '%$like%' WHERE user_id=$userid wl_user IS NULL";
 			$res = $dbr->query($sql, __METHOD__);
 
-			# Insert an entry into watchlist for each
+			// Insert an entry into watchlist for each
 			if ($row = $dbr->fetchRow($res))
 			{
 				$name = $wgCategoryWatchUseAutoCatRealName ? $user->getRealName() : $user->getName();
@@ -107,11 +107,11 @@ class CategoryWatch
 	 */
 	function onArticleSaveComplete(&$article, &$user, $text, $summary, $medit)
 	{
-		# Get list of added and removed cats
+		// Get list of added and removed cats
 		$add = array_diff($this->after, $this->before);
 		$sub = array_diff($this->before, $this->after);
 
-		# Notify watchers of each cat about the addition or removal of this article
+		// Notify watchers of each cat about the addition or removal of this article
 		if ($add || $sub)
 		{
 			$page     = $article->getTitle();
@@ -156,16 +156,16 @@ class CategoryWatch
 		global $wgLang, $wgEmergencyContact, $wgNoReplyAddress, $wgCategoryWatchNotifyEditor,
 			$wgEnotifRevealEditorAddress, $wgEnotifUseRealName, $wgPasswordSender, $wgEnotifFromEditor;
 
-		# Get list of users watching this category
+		// Get list of users watching this category
 		$dbr = wfGetDB(DB_SLAVE);
 		$conds = array('wl_title' => $title->getDBkey(), 'wl_namespace' => $title->getNamespace());
 		if (!$wgCategoryWatchNotifyEditor)
 			$conds[] = 'wl_user <> ' . intval($editor->getId());
 		$res = $dbr->select('watchlist', array('wl_user'), $conds, __METHOD__);
 
-		# Wrap message with common body and send to each watcher
+		// Wrap message with common body and send to each watcher
 		$page = $title->getPrefixedText();
-		# $wgPasswordSenderName was introduced only in MW 1.17
+		// $wgPasswordSenderName was introduced only in MW 1.17
 		global $wgPasswordSenderName;
 		$adminAddress = new MailAddress($wgPasswordSender,
 			isset($wgPasswordSenderName) ? $wgPasswordSenderName : 'WikiAdmin');
@@ -184,9 +184,9 @@ class CategoryWatch
 				$subject = wfMsg('categorywatch-emailsubject', $page);
 				$body    = wfMsgForContent('enotif_body');
 
-				# Reveal the page editor's address as REPLY-TO address only if
-				# the user has not opted-out and the option is enabled at the
-				# global configuration level.
+				// Reveal the page editor's address as REPLY-TO address only if
+				// the user has not opted-out and the option is enabled at the
+				// global configuration level.
 				$name = $wgEnotifUseRealName ? $watchingUser->getRealName() : $watchingUser->getName();
 				if ($wgEnotifRevealEditorAddress && $editor->getEmail() != '' &&
 					$editor->getOption('enotifrevealaddr'))
@@ -205,7 +205,7 @@ class CategoryWatch
 					$replyto = new MailAddress($wgNoReplyAddress);
 				}
 
-				# Define keys for body message
+				// Define keys for body message
 				$userPage = $editor->getUserPage();
 				$keys = array(
 					'$WATCHINGUSERNAME' => $name,
@@ -235,7 +235,7 @@ class CategoryWatch
 				}
 				$keys['$PAGESUMMARY'] = $summary;
 
-				# Replace keys, wrap text and send
+				// Replace keys, wrap text and send
 				$body = strtr($body, $keys);
 				$body = wordwrap($body, 72);
 				UserMailer::send($to, $from, $subject, $body, $replyto);
@@ -255,6 +255,6 @@ function wfSetupCategoryWatch()
 {
 	global $wgCategoryWatch;
 
-	# Instantiate the CategoryWatch singleton now that the environment is prepared
+	// Instantiate the CategoryWatch singleton now that the environment is prepared
 	$wgCategoryWatch = new CategoryWatch();
 }
