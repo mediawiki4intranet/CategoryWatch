@@ -48,47 +48,57 @@ class CategoryWatch
 		global $wgHooks;
 		$wgHooks['ArticleSave'][] = $this;
 		$wgHooks['ArticleSaveComplete'][] = $this;
+		$wgHooks['ArticleEditUpdates'][] = $this;
 	}
 
 	/**
-	 * Get a list of categories before article updated
+	 * Enforce auto-watch categories
 	 */
 	function onArticleSave(&$article, &$user, $text)
 	{
 		global $wgCategoryWatchUseAutoCat, $wgCategoryWatchUseAutoCatRealName;
-
-		$this->before = array();
-		$dbr  = wfGetDB(DB_SLAVE);
-		$cl   = $dbr->tableName('categorylinks');
-		$id   = $article->getID();
-		$res  = $dbr->select($cl, 'cl_to', "cl_from = $id", __METHOD__, array('ORDER BY' => 'cl_sortkey'));
-		while ($row = $dbr->fetchRow($res))
-			$this->before[] = $row[0];
-		$dbr->freeResult($res);
 
 		# If using the automatically watched category feature, ensure that all users are watching it
 		if ($wgCategoryWatchUseAutoCat)
 		{
 			$dbr = wfGetDB(DB_SLAVE);
 
-			# Find all users not watching the autocat
+			# Check if the user is not watching the autocat
+			$userid = $user->getId();
 			$like = str_replace(' ', '_', trim(wfMsg('categorywatch-autocat', '')));
 			$utbl = $dbr->tableName('user');
 			$wtbl = $dbr->tableName('watchlist');
-			$sql = "SELECT user_id FROM $utbl LEFT JOIN $wtbl ON user_id=wl_user AND wl_title LIKE '%$like%' WHERE wl_user IS NULL";
-			$res = $dbr->query($sql);
+			$sql = "SELECT user_id FROM $utbl LEFT JOIN $wtbl ON user_id=wl_user AND wl_title LIKE '%$like%' WHERE user_id=$userid wl_user IS NULL";
+			$res = $dbr->query($sql, __METHOD__);
 
 			# Insert an entry into watchlist for each
-			while ($row = $dbr->fetchRow($res))
+			if ($row = $dbr->fetchRow($res))
 			{
-				$user = User::newFromId($row[0]);
 				$name = $wgCategoryWatchUseAutoCatRealName ? $user->getRealName() : $user->getName();
 				$wl_title = str_replace(' ', '_', wfMsg('categorywatch-autocat', $name));
 				$dbr->insert($wtbl, array('wl_user' => $row[0], 'wl_namespace' => NS_CATEGORY, 'wl_title' => $wl_title));
 			}
 			$dbr->freeResult($res);
 		}
+		return true;
+	}
 
+	/**
+	 * Get a list of categories before and after article is updated
+	 */
+	function onArticleEditUpdates(&$article, &$editInfo, $changed)
+	{
+		$this->before = array();
+		$id = $article->getID();
+		if ($id)
+		{
+			$dbr = wfGetDB(DB_SLAVE);
+			$res = $dbr->select('categorylinks', 'cl_to', array('cl_from' => $id), __METHOD__, array('ORDER BY' => 'cl_sortkey'));
+			while ($row = $dbr->fetchRow($res))
+				$this->before[] = $row[0];
+			$dbr->freeResult($res);
+		}
+		$this->after = $editInfo->output->getCategoryLinks();
 		return true;
 	}
 
@@ -97,22 +107,12 @@ class CategoryWatch
 	 */
 	function onArticleSaveComplete(&$article, &$user, $text, $summary, $medit)
 	{
-		# Get cats after update
-		$this->after = array();
-		$dbr  = wfGetDB(DB_SLAVE);
-		$cl   = $dbr->tableName('categorylinks');
-		$id   = $article->getID();
-		$res  = $dbr->select($cl, 'cl_to', "cl_from = $id", __METHOD__, array('ORDER BY' => 'cl_sortkey'));
-		while ($row = $dbr->fetchRow($res))
-			$this->after[] = $row[0];
-		$dbr->freeResult($res);
-
 		# Get list of added and removed cats
 		$add = array_diff($this->after, $this->before);
 		$sub = array_diff($this->before, $this->after);
 
 		# Notify watchers of each cat about the addition or removal of this article
-		if (count($add) > 0 || count($sub) > 0)
+		if ($add || $sub)
 		{
 			$page     = $article->getTitle();
 			$pagename = $page->getPrefixedText();
@@ -137,7 +137,6 @@ class CategoryWatch
 				}
 			}
 		}
-
 		return true;
 	}
 
