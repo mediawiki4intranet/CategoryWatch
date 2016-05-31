@@ -9,8 +9,8 @@
  *
  * @file
  * @ingroup Extensions
- * @author Aran Dunkley [http://www.organicdesign.co.nz/nad User:Nad]
- * @copyright © 2008 Aran Dunkley
+ * @author Aran Dunkley [http://www.organicdesign.co.nz/nad User:Nad], [http://wiki.4intra.net/User:VitaliyFilippov Vitaliy Filippov]
+ * @copyright © 2008 Aran Dunkley, © 2016+ Vitaliy Filippov
  * @licence GNU General Public Licence 2.0 or later
  */
 
@@ -33,13 +33,13 @@ $wgExtensionFunctions[] = 'wfSetupCategoryWatch';
 $wgExtensionCredits['other'][] = array(
 	'path'           => __FILE__,
 	'name'           => 'CategoryWatch',
-	'author'         => '[http://www.organicdesign.co.nz/User:Nad User:Nad]',
+	'author'         => '[http://www.organicdesign.co.nz/User:Nad User:Nad], [http://wiki.4intra.net/User:VitaliyFilippov Vitaliy Filippov]',
 	'descriptionmsg' => 'categorywatch-desc',
 	'url'            => 'https://www.mediawiki.org/wiki/Extension:CategoryWatch',
 	'version'        => CATEGORYWATCH_VERSION,
 );
 
-$wgExtensionMessagesFiles['CategoryWatch'] =  dirname(__FILE__) . '/CategoryWatch.i18n.php';
+$wgExtensionMessagesFiles['CategoryWatch'] = dirname(__FILE__) . '/CategoryWatch.i18n.php';
 
 class CategoryWatch
 {
@@ -92,6 +92,7 @@ class CategoryWatch
 		$id = $article->getID();
 		if ($id)
 		{
+			// FIXME: Try to avoid extra DB query here (categorylinks is queried in LinksUpdate)
 			$dbr = wfGetDB(DB_SLAVE);
 			$res = $dbr->select('categorylinks', 'cl_to', array('cl_from' => $id), __METHOD__, array('ORDER BY' => 'cl_sortkey'));
 			while ($row = $dbr->fetchRow($res))
