@@ -16,8 +16,8 @@ $messages['en'] = array(
 	'categorywatch-emailsubject' => "Activity involving watched category \"$1\"",
 	'categorywatch-catmovein' => "$1 has moved into $2 from $3",
 	'categorywatch-catmoveout' => "$1 has moved out of $2 into $3",
-	'categorywatch-catadd' => "$1 has been added to $2",
-	'categorywatch-catsub' => "$1 has been removed from $2",
+	'categorywatch-catadd' => "$1 has been added to $2 by $3",
+	'categorywatch-catsub' => "$1 has been removed from $2 by $3",
 	'categorywatch-autocat' => "Automatically watched by $1",
 );
 
@@ -736,8 +736,8 @@ $messages['ru'] = array(
 	'categorywatch-emailsubject' => 'Изменения, затрагивающие наблюдаемую категорию «$1»',
 	'categorywatch-catmovein' => 'перенёс $1 в категорию $2 из $3',
 	'categorywatch-catmoveout' => 'перенёс $1 из категории $2 в $3',
-	'categorywatch-catadd' => 'добавил $1 в категорию $2',
-	'categorywatch-catsub' => 'удалил $1 из категории $2',
+	'categorywatch-catadd' => '$3 добавил $1 в категорию $2',
+	'categorywatch-catsub' => '$3 удалил $1 из категории $2',
 	'categorywatch-autocat' => 'Автоматически наблюдается $1',
 );
 

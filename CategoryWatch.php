@@ -123,7 +123,7 @@ class CategoryWatch
 			{
 				$add = array_shift($add);
 				$sub = array_shift($sub);
-				$title   = Title::newFromText($add, NS_CATEGORY);
+				$title = Title::newFromText($add, NS_CATEGORY);
 				$message = wfMsg('categorywatch-catmovein', $page, $this->friendlyCat($add), $this->friendlyCat($sub));
 				$this->notifyWatchers($title, $user, $message, $summary, $medit);
 			}
@@ -131,8 +131,8 @@ class CategoryWatch
 			{
 				foreach ($add as $cat)
 				{
-					$title   = Title::newFromText($cat, NS_CATEGORY);
-					$message = wfMsg('categorywatch-catadd', $page, $this->friendlyCat($cat));
+					$title = Title::newFromText($cat, NS_CATEGORY);
+					$message = wfMsg('categorywatch-catadd', $page, $this->friendlyCat($cat), $user->getName());
 					$this->notifyWatchers($title, $user, $message, $summary, $medit);
 				}
 			}
@@ -145,9 +145,9 @@ class CategoryWatch
 	 */
 	function friendlyCat($cat)
 	{
-		$cat     = Title::newFromText($cat, NS_CATEGORY);
+		$cat = Title::newFromText($cat, NS_CATEGORY);
 		$catname = $cat->getPrefixedText();
-		$caturl  = $cat->getFullUrl();
+		$caturl = $cat->getFullUrl();
 		return "$catname ($caturl)";
 	}
 
@@ -209,7 +209,10 @@ class CategoryWatch
 				$userPage = $editor->getUserPage();
 				$keys = array(
 					'$WATCHINGUSERNAME' => $name,
-					'$NEWPAGE'          => $message,
+					'$PAGEINTRO'        => $message,
+					'$NOFURTHERNOTICE'  => '',
+					'$UNWATCHURL'       => $title->getCanonicalURL('action=unwatch'),
+					'$NEWPAGE'          => '',
 					'$PAGETITLE'        => $page,
 					'$PAGEEDITDATE'     => $editdate,
 					'$CHANGEDORCREATED' => wfMsgForContent('changed'),
@@ -217,7 +220,10 @@ class CategoryWatch
 					'$PAGEEDITOR_WIKI'  => $userPage->getFullUrl(),
 					'$PAGESUMMARY'      => $summary,
 					'$PAGEMINOREDIT'    => $medit,
-					'$OLDID'            => ''
+					'$OLDID'            => '',
+					'$HELPPAGE'         => wfExpandUrl(
+						Skin::makeInternalOrExternalUrl(wfMessage('helppage')->inContentLanguage()->text())
+					)
 				);
 				if ($editor->isIP($name))
 				{
