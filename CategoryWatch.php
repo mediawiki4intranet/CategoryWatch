@@ -114,26 +114,39 @@ class CategoryWatch
 		// Notify watchers of each cat about the addition or removal of this article
 		if ($add || $sub)
 		{
-			$page     = $article->getTitle();
+			$page = $article->getTitle();
 			$pagename = $page->getPrefixedText();
 			$pageurl  = $page->getFullUrl();
-			$page     = "$pagename ($pageurl)";
 
 			if (count($add) == 1 && count($sub) == 1)
 			{
 				$add = array_shift($add);
 				$sub = array_shift($sub);
 				$title = Title::newFromText($add, NS_CATEGORY);
-				$message = wfMsg('categorywatch-catmovein', $page, $this->friendlyCat($add), $this->friendlyCat($sub));
-				$this->notifyWatchers($title, $user, $message, $summary, $medit);
+				$subtitle = Title::newFromText($sub, NS_CATEGORY);
+				$message = wfMsg('categorywatch-catmovein', "$pagename ($pageurl)", $this->friendlyCat($add), $this->friendlyCat($sub));
+				$messageHtml = wfMsgNoTrans(
+					'categorywatch-catmovein',
+					'<a href="'.$page->getFullUrl().'">'.htmlspecialchars($page).'</a>',
+					'<a href="'.$title->getFullUrl().'">'.htmlspecialchars($add).'</a>',
+					'<a href="'.$subtitle->getFullUrl().'">'.htmlspecialchars($sub).'</a>',
+					htmlspecialchars($user->getName())
+				);
+				$this->notifyWatchers($title, $user, $message, $messageHtml, $summary, $medit);
 			}
 			else
 			{
 				foreach ($add as $cat)
 				{
 					$title = Title::newFromText($cat, NS_CATEGORY);
-					$message = wfMsg('categorywatch-catadd', $page, $this->friendlyCat($cat), $user->getName());
-					$this->notifyWatchers($title, $user, $message, $summary, $medit);
+					$message = wfMsg('categorywatch-catadd', "$pagename ($pageurl)", $this->friendlyCat($cat), $user->getName());
+					$messageHtml = wfMsgNoTrans(
+						'categorywatch-catadd',
+						'<a href="'.$page->getFullUrl().'">'.htmlspecialchars($page).'</a>',
+						'<a href="'.$title->getFullUrl().'">'.htmlspecialchars($cat).'</a>',
+						htmlspecialchars($user->getName())
+					);
+					$this->notifyWatchers($title, $user, $message, $messageHtml, $summary, $medit);
 				}
 			}
 		}
@@ -151,7 +164,7 @@ class CategoryWatch
 		return "$catname ($caturl)";
 	}
 
-	function notifyWatchers(&$title, &$editor, &$message, &$summary, &$medit)
+	function notifyWatchers($title, $editor, $message, $messageHtml, $summary, $medit)
 	{
 		global $wgLang, $wgCategoryWatchNotifyEditor, $wgEnotifUseRealName;
 
@@ -246,6 +259,24 @@ class CategoryWatch
 				$body = strtr($body, $keys);
 				$body = wordwrap($body, 72);
 				$to = new MailAddress($watchingUser);
+
+				// Support HTML e-mail (Mediawiki4Intranet 1.26 patch)
+				$bodyHtml = wfMessage('enotif_body_html');
+				if ($bodyHtml->exists())
+				{
+					foreach ($keys as &$k)
+						$k = htmlspecialchars($k);
+					$keys['$DIFF'] = '';
+					$keys['$PAGEINTRO'] = $messageHtml;
+					$bodyHtml = $bodyHtml->inContentLanguage()->plain();
+					$bodyHtml = strtr($bodyHtml, $keys);
+					$bodyHtml = MessageCache::singleton()->transform($bodyHtml, false, null, $title);
+					$body = array(
+						'text' => $body,
+						'html' => $bodyHtml,
+					);
+				}
+
 				UserMailer::send($to, $from, $subject, $body, $replyto);
 			}
 		}

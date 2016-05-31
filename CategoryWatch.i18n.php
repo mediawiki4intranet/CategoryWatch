@@ -14,10 +14,9 @@ $messages = array();
 $messages['en'] = array(
 	'categorywatch-desc' => 'Extends watchlist functionality to include notification about membership changes of watched categories',
 	'categorywatch-emailsubject' => "Activity involving watched category \"$1\"",
-	'categorywatch-catmovein' => "$1 has moved into $2 from $3",
-	'categorywatch-catmoveout' => "$1 has moved out of $2 into $3",
-	'categorywatch-catadd' => "$1 has been added to $2 by $3",
-	'categorywatch-catsub' => "$1 has been removed from $2 by $3",
+	'categorywatch-catmovein' => "$1 has been moved into $2 from $3 by $4.",
+	'categorywatch-catadd' => "$1 has been added to $2 by $3.",
+	'categorywatch-catsub' => "$1 has been removed from $2 by $3.",
 	'categorywatch-autocat' => "Automatically watched by $1",
 );
 
@@ -35,17 +34,16 @@ $messages['qqq'] = array(
 	'categorywatch-catmovein' => 'Substituted as $NEWPAGE in [[MediaWiki:Enotif_body/en]].
 * $1 is a page name
 * $2 is the target category name
-* $3 is the source category name',
-	'categorywatch-catmoveout' => 'Substituted as $NEWPAGE in [[MediaWiki:Enotif_body/en]].
-* $1 is a page name
-* $2 is the source category name
-* $3 is the target category name',
+* $3 is the source category name
+* $4 is the changer username',
 	'categorywatch-catadd' => 'Substituted as $NEWPAGE in [[MediaWiki:Enotif_body/en]].
 * $1 is a page name
-* $2 is a category name',
+* $2 is a category name
+* $4 is the changer username',
 	'categorywatch-catsub' => 'Substituted as $NEWPAGE in [[MediaWiki:Enotif_body/en]].
 * $1 is a page name
-* $2 is a category name',
+* $2 is a category name
+* $4 is the changer username',
 	'categorywatch-autocat' => 'If the "automatically watching" feature is enabled, this message is used as a page title in the watchlist.
 * $1 is a username (or a realname)',
 );
@@ -734,10 +732,9 @@ $messages['roa-tara'] = array(
 $messages['ru'] = array(
 	'categorywatch-desc' => 'Расширяет функциональность списка наблюдения возможностью уведомлений об изменениях в страницах, входящих в некоторую категорию',
 	'categorywatch-emailsubject' => 'Изменения, затрагивающие наблюдаемую категорию «$1»',
-	'categorywatch-catmovein' => 'перенёс $1 в категорию $2 из $3',
-	'categorywatch-catmoveout' => 'перенёс $1 из категории $2 в $3',
-	'categorywatch-catadd' => '$3 добавил $1 в категорию $2',
-	'categorywatch-catsub' => '$3 удалил $1 из категории $2',
+	'categorywatch-catmovein' => '$4 перенёс $1 в категорию $2 из $3.',
+	'categorywatch-catadd' => '$3 добавил $1 в категорию $2.',
+	'categorywatch-catsub' => '$3 удалил $1 из категории $2.',
 	'categorywatch-autocat' => 'Автоматически наблюдается $1',
 );
 
