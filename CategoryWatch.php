@@ -153,8 +153,7 @@ class CategoryWatch
 
 	function notifyWatchers(&$title, &$editor, &$message, &$summary, &$medit)
 	{
-		global $wgLang, $wgEmergencyContact, $wgNoReplyAddress, $wgCategoryWatchNotifyEditor,
-			$wgEnotifRevealEditorAddress, $wgEnotifUseRealName, $wgPasswordSender, $wgEnotifFromEditor;
+		global $wgLang, $wgCategoryWatchNotifyEditor, $wgEnotifUseRealName;
 
 		// Get list of users watching this category
 		$dbr = wfGetDB(DB_SLAVE);
@@ -163,87 +162,90 @@ class CategoryWatch
 			$conds[] = 'wl_user <> ' . intval($editor->getId());
 		$res = $dbr->select('watchlist', array('wl_user'), $conds, __METHOD__);
 
-		// Wrap message with common body and send to each watcher
-		$page = $title->getPrefixedText();
-		// $wgPasswordSenderName was introduced only in MW 1.17
-		global $wgPasswordSenderName;
-		$adminAddress = new MailAddress($wgPasswordSender,
-			isset($wgPasswordSenderName) ? $wgPasswordSenderName : 'WikiAdmin');
-		$editorAddress = new MailAddress($editor);
-		$summary = $summary ? $summary : ' - ';
-		$medit = $medit ? wfMsg('minoredit') : '';
+		$commonKeys = NULL;
 		while ($row = $dbr->fetchRow($res))
 		{
-			$watchingUser   = User::newFromId($row[0]);
-			$timecorrection = $watchingUser->getOption('timecorrection');
-			$editdate       = $wgLang->timeanddate(wfTimestampNow(), true, false, $timecorrection);
-
+			$watchingUser = User::newFromId($row[0]);
 			if ($watchingUser->getOption('enotifwatchlistpages') && $watchingUser->isEmailConfirmed())
 			{
-				$to      = new MailAddress($watchingUser);
-				$subject = wfMsg('categorywatch-emailsubject', $page);
-				$body    = wfMsgForContent('enotif_body');
-
-				// Reveal the page editor's address as REPLY-TO address only if
-				// the user has not opted-out and the option is enabled at the
-				// global configuration level.
-				$name = $wgEnotifUseRealName ? $watchingUser->getRealName() : $watchingUser->getName();
-				if ($wgEnotifRevealEditorAddress && $editor->getEmail() != '' &&
-					$editor->getOption('enotifrevealaddr'))
+				// Wrap message with common body and send to each watcher
+				if ($commonKeys === NULL)
 				{
-					if ($wgEnotifFromEditor)
-						$from = $editorAddress;
+					// $wgPasswordSenderName was introduced only in MW 1.17
+					global $wgEnotifRevealEditorAddress, $wgPasswordSender, $wgPasswordSenderName,
+						$wgNoReplyAddress, $wgEnotifFromEditor;
+					$adminAddress = new MailAddress($wgPasswordSender,
+						isset($wgPasswordSenderName) ? $wgPasswordSenderName : 'WikiAdmin');
+					$editorAddress = new MailAddress($editor);
+
+					// Reveal the page editor's address as REPLY-TO address only if
+					// the user has not opted-out and the option is enabled at the
+					// global configuration level.
+					if ($wgEnotifRevealEditorAddress && $editor->getEmail() != '' &&
+						$editor->getOption('enotifrevealaddr'))
+					{
+						if ($wgEnotifFromEditor)
+							$from = $editorAddress;
+						else
+						{
+							$from = $adminAddress;
+							$replyto = $editorAddress;
+						}
+					}
 					else
 					{
 						$from = $adminAddress;
-						$replyto = $editorAddress;
+						$replyto = new MailAddress($wgNoReplyAddress);
+					}
+
+					// Define keys for body message
+					$userPage = $editor->getUserPage();
+					$page = $title->getPrefixedText();
+					$commonKeys = array(
+						'$PAGEINTRO'        => $message,
+						'$NOFURTHERNOTICE'  => '',
+						'$UNWATCHURL'       => $title->getCanonicalURL('action=unwatch'),
+						'$NEWPAGE'          => '',
+						'$PAGETITLE'        => $page,
+						'$CHANGEDORCREATED' => wfMsgForContent('changed'),
+						'$PAGETITLE_URL'    => $title->getFullUrl(),
+						'$PAGEEDITOR_WIKI'  => $userPage->getFullUrl(),
+						'$PAGESUMMARY'      => ($summary ? $summary : ' - '),
+						'$PAGEMINOREDIT'    => ($medit ? wfMsg('minoredit') : ''),
+						'$OLDID'            => '',
+						'$HELPPAGE'         => wfExpandUrl(
+							Skin::makeInternalOrExternalUrl(wfMessage('helppage')->inContentLanguage()->text())
+						)
+					);
+					$subject = wfMsg('categorywatch-emailsubject', $page);
+					if ($editor->isAnon())
+					{
+						$utext = wfMsgForContent('enotif_anon_editor', $editor->getName());
+						$subject = str_replace('$PAGEEDITOR', $utext, $subject);
+						$commonKeys['$PAGEEDITOR'] = $utext;
+						$commonKeys['$PAGEEDITOR_EMAIL'] = wfMsgForContent('noemailtitle');
+					}
+					else
+					{
+						$subject = str_replace('$PAGEEDITOR', $editor->getName(), $subject);
+						$commonKeys['$PAGEEDITOR'] = $editor->getName();
+						$emailPage = SpecialPage::getSafeTitleFor('Emailuser', $editor->getName());
+						$commonKeys['$PAGEEDITOR_EMAIL'] = $emailPage->getFullUrl();
 					}
 				}
-				else
-				{
-					$from = $adminAddress;
-					$replyto = new MailAddress($wgNoReplyAddress);
-				}
-
-				// Define keys for body message
-				$userPage = $editor->getUserPage();
-				$keys = array(
-					'$WATCHINGUSERNAME' => $name,
-					'$PAGEINTRO'        => $message,
-					'$NOFURTHERNOTICE'  => '',
-					'$UNWATCHURL'       => $title->getCanonicalURL('action=unwatch'),
-					'$NEWPAGE'          => '',
-					'$PAGETITLE'        => $page,
-					'$PAGEEDITDATE'     => $editdate,
-					'$CHANGEDORCREATED' => wfMsgForContent('changed'),
-					'$PAGETITLE_URL'    => $title->getFullUrl(),
-					'$PAGEEDITOR_WIKI'  => $userPage->getFullUrl(),
-					'$PAGESUMMARY'      => $summary,
-					'$PAGEMINOREDIT'    => $medit,
-					'$OLDID'            => '',
-					'$HELPPAGE'         => wfExpandUrl(
-						Skin::makeInternalOrExternalUrl(wfMessage('helppage')->inContentLanguage()->text())
-					)
-				);
-				if ($editor->isIP($name))
-				{
-					$utext = wfMsgForContent('enotif_anon_editor', $name);
-					$subject = str_replace('$PAGEEDITOR', $utext, $subject);
-					$keys['$PAGEEDITOR'] = $utext;
-					$keys['$PAGEEDITOR_EMAIL'] = wfMsgForContent('noemailtitle');
-				}
-				else
-				{
-					$subject = str_replace('$PAGEEDITOR', $name, $subject);
-					$keys['$PAGEEDITOR'] = $name;
-					$emailPage = SpecialPage::getSafeTitleFor('Emailuser', $name);
-					$keys['$PAGEEDITOR_EMAIL'] = $emailPage->getFullUrl();
-				}
-				$keys['$PAGESUMMARY'] = $summary;
 
 				// Replace keys, wrap text and send
+				$name = $wgEnotifUseRealName ? $watchingUser->getRealName() : $watchingUser->getName();
+				$timecorrection = $watchingUser->getOption('timecorrection');
+				$editdate = $wgLang->timeanddate(wfTimestampNow(), true, false, $timecorrection);
+				$keys = $commonKeys + array(
+					'$WATCHINGUSERNAME' => $name,
+					'$PAGEEDITDATE' => $editdate,
+				);
+				$body = wfMsgForContent('enotif_body');
 				$body = strtr($body, $keys);
 				$body = wordwrap($body, 72);
+				$to = new MailAddress($watchingUser);
 				UserMailer::send($to, $from, $subject, $body, $replyto);
 			}
 		}
