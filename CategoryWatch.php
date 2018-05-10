@@ -54,7 +54,7 @@ class CategoryWatch
 	/**
 	 * Enforce auto-watch categories
 	 */
-	function onArticleSave(&$article, &$user, $text)
+	function onArticleSave($article, $user, $text)
 	{
 		global $wgCategoryWatchUseAutoCat, $wgCategoryWatchUseAutoCatRealName;
 
@@ -86,7 +86,7 @@ class CategoryWatch
 	/**
 	 * Get a list of categories before and after article is updated
 	 */
-	function onArticleEditUpdates(&$article, &$editInfo, $changed)
+	function onArticleEditUpdates($article, $editInfo, $changed)
 	{
 		$this->before = array();
 		$id = $article->getID();
@@ -106,7 +106,7 @@ class CategoryWatch
 	/**
 	 * Find changes in categorisation and send messages to watching users
 	 */
-	function onArticleSaveComplete(&$article, &$user, $text, $summary, $medit)
+	function onArticleSaveComplete($article, $user, $text, $summary, $medit)
 	{
 		// Get list of added and removed cats
 		$add = array_diff($this->after, $this->before);
